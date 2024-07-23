@@ -7,6 +7,7 @@ from api.v1 import films, genres, persons
 from core import config
 from db import elastic, redis
 
+
 app = FastAPI(
     title=config.PROJECT_NAME,
     docs_url='/api/openapi',

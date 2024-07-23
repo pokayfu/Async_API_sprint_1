@@ -24,7 +24,7 @@ services:
       - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data/
-      #- ./backup.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./postgres_to_es/backup.sql:/docker-entrypoint-initdb.d/init.sql
     env_file:
       - .env
     healthcheck:
@@ -53,12 +53,12 @@ services:
     ports:
       - "6379:6379"
 
-#  etl:
-#    build: ./
-#    env_file:
-#      - .env
-#    depends_on:
-#      es:
-#        condition: service_healthy
-#      db:
-#        condition: service_healthy
+  etl:
+    build: ./postgres_to_es
+    env_file:
+      - .env
+    depends_on:
+      es:
+        condition: service_healthy
+      db:
+        condition: service_healthy

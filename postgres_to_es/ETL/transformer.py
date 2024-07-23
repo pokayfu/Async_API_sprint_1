@@ -1,17 +1,27 @@
+from typing import Dict, List
+
+from models import GenreModel, MovieModel
 from settings.settings import logger
-from models import MovieModel
 
 
 class DataTransformer:
     """Класс для преобразования данных из Postgres для загрузки в Elastic."""
+
     @staticmethod
-    def transform(rows_from_postgres: list[dict]) -> list[MovieModel]:
+    def transform(rows_from_postgres: Dict[str, List[Dict]]) -> Dict[str, List[MovieModel | GenreModel]]:
         """Преобразование сырых данных из БД в объекты для загрузки в Elastic."""
-        data = []
-        for row in rows_from_postgres:
-            try:
-                data.append(MovieModel(**row))
-            except Exception as er:
-                logger.error(f'Ошибка преобразования данных {row=}, {er=}')
-                continue
-        return data
+        transformed_data = {
+            'movies': [],
+            'genres': []
+        }
+        for data_type, rows in rows_from_postgres.items():
+            for row in rows:
+                try:
+                    if data_type == 'movies':
+                        transformed_data['movies'].append(MovieModel(**row))
+                    elif data_type == 'genres':
+                        transformed_data['genres'].append(GenreModel(**row))
+                except Exception as er:
+                    logger.error(f'Ошибка преобразования данных {row=}, {er=}')
+                    continue
+        return transformed_data

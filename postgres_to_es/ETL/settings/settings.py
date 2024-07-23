@@ -86,3 +86,24 @@ LEFT JOIN content.genre g ON g.id = gfw.genre_id
 GROUP BY fw.id
 ORDER BY fw.updated_at;
 """
+
+SQL_GENRES_QUERY = """
+    SELECT
+        g.id,
+        g.name,
+        g.description,
+        g.updated_at
+    FROM content.genre g
+    ORDER BY g.updated_at;
+"""
+
+SQL_MODIFIED_GENRES_QUERY = """
+    SELECT
+        g.id,
+        g.name,
+        g.description,
+        g.updated_at
+    FROM content.genre g
+    WHERE g.updated_at > %s
+    ORDER BY g.updated_at;
+"""

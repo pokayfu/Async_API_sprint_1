@@ -50,3 +50,10 @@ class MovieModel(BaseModel):
             obj_dict[role_key] = self._get_persons_info(role_value)
             obj_dict[f'{role_key}_names'] = self._get_persons_names(role_value)
         return obj_dict
+
+
+class GenreModel(BaseModel):
+    """Model for Genre"""
+    id: str
+    description: Optional[str] = None
+    name: str

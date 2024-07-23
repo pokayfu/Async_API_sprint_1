@@ -1,21 +1,11 @@
 from functools import lru_cache
-
-from elasticsearch import AsyncElasticsearch
 from fastapi import Depends
-from redis.asyncio import Redis
-
-from db.elastic import get_elastic
-from db.redis import get_redis
-from functools import lru_cache
+from src.db.elastic import get_elastic
+from src.db.redis import get_redis
 from typing import Optional
-
 from elasticsearch import AsyncElasticsearch, NotFoundError
-from fastapi import Depends
 from redis.asyncio import Redis
-
-from db.elastic import get_elastic
-from db.redis import get_redis
-from models.film import Film
+from src.models.film import Film
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 

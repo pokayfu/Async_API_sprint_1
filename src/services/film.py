@@ -102,7 +102,7 @@ class FilmService:
         return film
 
     async def _films_from_cache(self, **kwargs) -> list[Film] | None:
-        key = await get_key_by_args(**kwargs)
+        key = await self.get_key_by_args(**kwargs)
         data = await self.redis.get(key)
         if not data:
             return None
@@ -117,7 +117,7 @@ class FilmService:
         await self.redis.set(film.id, film.json(), FILM_CACHE_EXPIRE_IN_SECONDS)
 
     async def _put_films_to_cache(self, films: list[Film], **kwargs):
-        key = await get_key_by_args(**kwargs)
+        key = await self.get_key_by_args(**kwargs)
         await self.redis.set(key, orjson.dumps([film.json() for film in films]), FILM_CACHE_EXPIRE_IN_SECONDS)
 
     @staticmethod

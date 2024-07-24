@@ -1,2 +1,5 @@
+from pydantic import BaseModel
+
+
 class Person(BaseModel):
     pass

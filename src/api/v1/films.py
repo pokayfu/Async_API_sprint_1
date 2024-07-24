@@ -1,11 +1,30 @@
 from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from src.services.film import FilmService, get_film_service
 
 router = APIRouter()
+
+
+class UUIDMixin(BaseModel):
+    uuid: str = Field(alias='id')
+
+
+class FullFilm(UUIDMixin):
+    imdb_rating: float | None
+    title: str
+    description: str | None
+    genres: list[str]
+    directors_names: list[str]
+    actors_names: list[str]
+    writers_names: list[str]
+    class PersonEntity(UUIDMixin):
+        name: str
+    directors: list[PersonEntity]
+    actors: list[PersonEntity]
+    writers: list[PersonEntity]
 
 
 class Film(BaseModel):
@@ -30,7 +49,7 @@ async def search_films_by_title(
         query: str = None,
         film_service: FilmService = Depends(get_film_service)
 ):
-    films = await film_service.search(page_size, page, sort, query)
+    films = await film_service.all(page_size=page_size, page=page, sort=sort, query=query)
     return films
 
 
@@ -42,6 +61,6 @@ async def get_films(
         genre: str = None,
         film_service: FilmService = Depends(get_film_service)
 ) -> list[Film]:
-    films = await film_service.all(page_size, page, sort, genre)
+    films = await film_service.all(page_size=page_size, page=page, sort=sort, genre=genre)
     return films
 

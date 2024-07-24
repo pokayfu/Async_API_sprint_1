@@ -37,6 +37,9 @@ class FullFilm(BaseModel):
     directors_names: list[str]
     actors_names: list[str]
     writers_names: list[str]
-    directors: list[Director]
-    actors: list[Actor]
-    writers: list[Writer]
+    class PersonEntity(BaseModel):
+        id: str
+        name: str
+    directors: list[PersonEntity]
+    actors: list[PersonEntity]
+    writers: list[PersonEntity]

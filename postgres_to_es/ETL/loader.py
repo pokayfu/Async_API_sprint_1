@@ -1,11 +1,12 @@
 import logging
-from typing import List
+from typing import Dict, List
 
 import backoff
 import elastic_transport
 from elasticsearch import Elasticsearch, helpers
 
-from models import MovieModel
+from genres_index import genres_index
+from models import GenreModel, MovieModel
 from movies_index import movies_index
 from settings.settings import ElasticsearchSettings
 
@@ -25,8 +26,7 @@ class ESLoader:
         :param es_settings: Настройки Elasticsearch.
         """
         self.elastic = Elasticsearch([es_settings.dict()], timeout=5)
-        self.index_name = "movies"
-        self.index_settings = movies_index
+        self.indexes = {"movies": movies_index, "genres": genres_index}
 
     @backoff.on_exception(
         backoff.expo,
@@ -34,17 +34,18 @@ class ESLoader:
         max_tries=5,
         max_time=5,
     )
-    def create_index(self) -> None:
+    def create_indexes(self) -> None:
         """
-        Создает индекс в Elasticsearch, если он не существует.
+        Создает индексы в Elasticsearch, если они не существуют.
 
         :raises: ConnectionError, ConnectionTimeout
         """
-        if not self.elastic.indices.exists(index=self.index_name):
-            self.elastic.indices.create(
-                index=self.index_name,
-                body=self.index_settings
-            )
+        for index_name, index_setting in self.indexes.items():
+            if not self.elastic.indices.exists(index=index_name):
+                self.elastic.indices.create(
+                    index=index_name,
+                    body=index_setting
+                )
 
     @backoff.on_exception(
         backoff.expo,
@@ -52,25 +53,38 @@ class ESLoader:
         max_tries=5,
         max_time=5
     )
-    def bulk_data_load(self, data: List[MovieModel]) -> None:
+    def bulk_data_load(self, data) -> None:
         """
         Загружает данные в Elasticsearch пакетами.
 
         :param data: Преобразованные данные для загрузки.
         :raises: ConnectionError, ConnectionTimeout
         """
-        bulk_data = [
-            {
-                '_op_type': 'index',
-                '_id': item.id,
-                '_index': self.index_name,
-                '_source': item.dict()
-            }
-            for item in data
-        ]
-        helpers.bulk(self.elastic, bulk_data)
+        # for index_name in self.indexes:
+        #     bulk_data = [
+        #         {
+        #             '_op_type': 'index',
+        #             '_id': item.id,
+        #             '_index': index_name,
+        #             '_source': item.dict()
+        #         }
+        #         for item in data
+        #     ]
+        #     helpers.bulk(self.elastic, bulk_data)
 
-    def load(self, data: List[MovieModel]) -> None:
+        for index_name, items in data.items():
+            bulk_data = [
+                {
+                    '_op_type': 'index',
+                    '_id': item.id,
+                    '_index': index_name,
+                    '_source': item.dict()
+                }
+                for item in items
+            ]
+            helpers.bulk(self.elastic, bulk_data)
+
+    def load(self, data: Dict[str, List[MovieModel | GenreModel]]) -> None:
         """
         Метод для загрузки данных в Elasticsearch с обработкой исключений.
 
@@ -78,7 +92,7 @@ class ESLoader:
         :raises: ESConnectionError
         """
         try:
-            self.create_index()
+            self.create_indexes()
             self.bulk_data_load(data)
         except (elastic_transport.ConnectionError, elastic_transport.ConnectionTimeout) as error:
             logging.error(f'Ошибка загрузки данных в Elasticsearch: {error}')

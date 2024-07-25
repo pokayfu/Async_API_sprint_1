@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -57,3 +57,15 @@ class GenreModel(BaseModel):
     id: str
     description: Optional[str] = None
     name: str
+
+
+class PersonModel(BaseModel):
+    """Model for Person"""
+    person_id: str
+    full_name: str
+    class FilmEntity(BaseModel):
+        id: str
+        roles: List[str]
+        title: str
+        imdb_rating: Optional[Union[int, float]]
+    films: list[FilmEntity]

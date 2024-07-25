@@ -7,7 +7,7 @@ from psycopg2.extensions import connection
 from psycopg2.extras import DictCursor
 
 from settings.settings import (PostgresDBSettings, SQL_GENRES_QUERY, SQL_MODIFIED_GENRES_QUERY, SQL_MODIFIED_QUERY,
-                               SQL_QUERY)
+                               SQL_QUERY, SQL_PERSONS_QUERY, SQL_MODIFIED_PERSONS_QUERY)
 
 
 class DBConnectionError(Exception):
@@ -26,8 +26,8 @@ class PsExtractor:
         """
         self.db_settings = db_settings
         # self.modified_query: str = SQL_MODIFIED_QUERY
-        self.query = {"movies": SQL_QUERY, "genres": SQL_GENRES_QUERY}
-        self.modified_query = {"movies": SQL_MODIFIED_QUERY, "genres": SQL_MODIFIED_GENRES_QUERY}
+        self.query = {"movies": SQL_QUERY, "genres": SQL_GENRES_QUERY, "persons": SQL_PERSONS_QUERY}
+        self.modified_query = {"movies": SQL_MODIFIED_QUERY, "genres": SQL_MODIFIED_GENRES_QUERY, "persons": SQL_MODIFIED_PERSONS_QUERY}
 
     @backoff.on_exception(
         backoff.expo,
@@ -52,7 +52,8 @@ class PsExtractor:
         """
         data = {
             'movies': [],
-            'genres': []
+            'genres': [],
+            'persons': []
         }
         connection = None
         try:
@@ -63,6 +64,8 @@ class PsExtractor:
                         if data_type == 'movies':
                             cursor.execute(self.modified_query[data_type], (modified, modified, modified))
                         elif data_type == 'genres':
+                            cursor.execute(self.modified_query[data_type], (modified,))
+                        elif data_type == 'persons':
                             cursor.execute(self.modified_query[data_type], (modified,))
                     else:
                         cursor.execute(self.query[data_type])

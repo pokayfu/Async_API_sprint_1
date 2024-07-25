@@ -107,3 +107,68 @@ SQL_MODIFIED_GENRES_QUERY = """
     WHERE g.updated_at > %s
     ORDER BY g.updated_at;
 """
+
+SQL_MODIFIED_PERSONS_QUERY= """
+    SELECT 
+            person_with_films.person_id, 
+            person_with_films.full_name,
+            ARRAY_AGG(distinct
+                jsonb_build_object('id', person_with_films.film_id, 'roles', roles, 'title', person_with_films.film_title, 'imdb_rating', person_with_films.film_rating)) AS films,
+            person_with_films.updated_at
+    FROM (
+            SELECT 
+                film.id as film_id,
+                film.title as film_title,
+                film.rating as film_rating,
+                person.id as person_id, 
+                person.full_name as full_name,
+                ARRAY_AGG(DISTINCT (person_film.role)) AS roles,
+                GREATEST(film.updated_at, MAX(genre.updated_at), MAX(person.updated_at)) as updated_at
+            FROM 
+                content.film_work film
+                LEFT JOIN content.genre_film_work AS genre_film ON film.id = genre_film.film_work_id
+                LEFT JOIN content.genre AS genre ON genre_film.genre_id = genre.id
+                LEFT JOIN content.person_film_work AS person_film ON film.id = person_film.film_work_id
+                LEFT JOIN content.person as person on person.id = person_film.person_id
+            WHERE person.id is not null and GREATEST(film.updated_at, genre.updated_at, person.updated_at) >= %s
+            GROUP BY 
+                film.id, person.id, person.full_name
+        ) AS person_with_films
+    GROUP BY 
+        person_with_films.person_id, person_with_films.full_name, person_with_films.updated_at
+    ORDER BY updated_at;
+"""
+
+
+
+
+SQL_PERSONS_QUERY = """
+    SELECT 
+            person_with_films.person_id, 
+            person_with_films.full_name,
+            ARRAY_AGG(distinct
+                jsonb_build_object('id', person_with_films.film_id, 'roles', roles, 'title', person_with_films.film_title, 'imdb_rating', person_with_films.film_rating)) AS films,
+            person_with_films.updated_at
+    FROM (
+            SELECT 
+                film.id as film_id,
+                film.title as film_title,
+                film.rating as film_rating,
+                person.id as person_id, 
+                person.full_name as full_name,
+                ARRAY_AGG(DISTINCT (person_film.role)) AS roles,
+                GREATEST(film.updated_at, MAX(genre.updated_at), MAX(person.updated_at)) as updated_at
+            FROM 
+                content.film_work film
+                LEFT JOIN content.genre_film_work AS genre_film ON film.id = genre_film.film_work_id
+                LEFT JOIN content.genre AS genre ON genre_film.genre_id = genre.id
+                LEFT JOIN content.person_film_work AS person_film ON film.id = person_film.film_work_id
+                LEFT JOIN content.person as person on person.id = person_film.person_id
+            WHERE person.id is not null and GREATEST(film.updated_at, genre.updated_at, person.updated_at) >= 'epoch'
+            GROUP BY 
+                film.id, person.id, person.full_name
+        ) AS person_with_films
+    GROUP BY 
+        person_with_films.person_id, person_with_films.full_name, person_with_films.updated_at
+    ORDER BY updated_at;
+"""

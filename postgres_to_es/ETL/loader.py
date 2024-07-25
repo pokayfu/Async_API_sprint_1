@@ -5,6 +5,7 @@ import backoff
 import elastic_transport
 from elasticsearch import Elasticsearch, helpers
 
+from persons_index import persons_index
 from genres_index import genres_index
 from models import GenreModel, MovieModel
 from movies_index import movies_index
@@ -26,7 +27,7 @@ class ESLoader:
         :param es_settings: Настройки Elasticsearch.
         """
         self.elastic = Elasticsearch([es_settings.dict()], timeout=5)
-        self.indexes = {"movies": movies_index, "genres": genres_index}
+        self.indexes = {"movies": movies_index, "genres": genres_index, "persons": persons_index}
 
     @backoff.on_exception(
         backoff.expo,
@@ -76,7 +77,7 @@ class ESLoader:
             bulk_data = [
                 {
                     '_op_type': 'index',
-                    '_id': item.id,
+                    '_id': item.person_id if index_name == 'persons' else item.id ,
                     '_index': index_name,
                     '_source': item.dict()
                 }

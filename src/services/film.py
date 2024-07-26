@@ -8,7 +8,7 @@ from src.db.redis import get_redis
 from typing import Optional
 from elasticsearch import AsyncElasticsearch, NotFoundError
 from redis.asyncio import Redis
-from src.models.film import Film
+from src.models.film import Film, Genre, Person
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
@@ -21,7 +21,8 @@ class FilmService:
     # get_by_id возвращает объект фильма. Он опционален, так как фильм может отсутствовать в базе
     async def get_by_id(self, film_id: str) -> Optional[Film]:
         # Пытаемся получить данные из кеша, потому что оно работает быстрее
-        film = await self._film_from_cache(film_id)
+        # film = await self._film_from_cache(film_id)
+        film = None
         if not film:
             # Если фильма нет в кеше, то ищем его в Elasticsearch
             film = await self._get_film_from_elastic(film_id)
@@ -35,6 +36,7 @@ class FilmService:
 
     async def all(self, **kwargs) -> list[Film]:
         films = await self._films_from_cache(**kwargs)
+        films = None
         if not films:
             films = await self._get_films_from_elastic(**kwargs)
             if not films:
@@ -47,7 +49,17 @@ class FilmService:
             doc = await self.elastic.get(index='movies', id=film_id)
         except NotFoundError:
             return None
-        return Film(**doc['_source'])
+        source = doc['_source']
+        return Film(
+            id=doc['_id'],
+            title=source['title'],
+            description=source.get('description'),
+            imdb_rating=source.get('imdb_rating', 0.0),
+            genre=[Genre(id=g['id'], name=g['name']) for g in source.get('genre', [])],
+            actors=[Person(id=p['id'], name=p['name']) for p in source.get('actors', [])],
+            writers=[Person(id=p['id'], name=p['name']) for p in source.get('writers', [])],
+            directors=[Person(id=p['id'], name=p['name']) for p in source.get('directors', [])]
+        )
 
     async def _get_films_from_elastic(self, **kwargs) -> list[Film] | None:
         page_size = kwargs.get('page_size', 10)
@@ -122,10 +134,16 @@ class FilmService:
 
     @staticmethod
     async def _make_film_from_es_doc(doc: dict) -> Film:
+        source = doc['_source']
         return Film(
             id=doc['_id'],
-            title=doc['_source']['title'],
-            description=doc['_source']['description'],
+            title=source['title'],
+            description=source.get('description'),
+            imdb_rating=source.get('imdb_rating', 0.0),
+            genre=[Genre(name=g['name']) for g in source.get('genre', [])],
+            actors=[Person(name=p['name']) for p in source.get('actors', [])],
+            writers=[Person(name=p['name']) for p in source.get('writers', [])],
+            directors=[Person(name=p['name']) for p in source.get('directors', [])]
         )
 
     async def get_key_by_args(self, *args, **kwargs) -> str:

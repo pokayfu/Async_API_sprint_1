@@ -29,7 +29,7 @@ async def get_films(
     return films
 
 
-@router.get('/search', response_model=list[Film])
+@router.get('search', response_model=list[Film])
 async def search_films_by_title(
         page_size: int = 10,
         page: int = 1,

@@ -39,4 +39,3 @@ async def search_films_by_title(
 ) -> list[Film]:
     films = await film_service.all(page_size=page_size, page=page, sort=sort, query=query)
     return films
-

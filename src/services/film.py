@@ -19,6 +19,7 @@ class FilmService:
         self.elastic = elastic
 
     async def get_by_id(self, film_id: str) -> Optional[Film]:
+        # film = self._film_from_cache(film_id)
         film = None
         if not film:
             film = await self._get_film_from_elastic(film_id)
@@ -29,7 +30,7 @@ class FilmService:
         return film
 
     async def all(self, **kwargs) -> list[Film]:
-        films = await self._films_from_cache(**kwargs)
+        # films = await self._films_from_cache(**kwargs)
         films = None
         if not films:
             films = await self._get_films_from_elastic(**kwargs)
@@ -49,7 +50,7 @@ class FilmService:
             title=source['title'],
             description=source.get('description'),
             imdb_rating=source.get('imdb_rating', 0.0),
-            genre=[Genre(id=g['id'], name=g['name']) for g in source.get('genre', [])],
+            genre=source.get('genres', []),
             actors=[Person(id=p['id'], name=p['name']) for p in source.get('actors', [])],
             writers=[Person(id=p['id'], name=p['name']) for p in source.get('writers', [])],
             directors=[Person(id=p['id'], name=p['name']) for p in source.get('directors', [])]
@@ -61,34 +62,36 @@ class FilmService:
         sort = kwargs.get('sort', '')
         genre = kwargs.get('genre', None)
         query = kwargs.get('query', None)
-        body = None
+        body = {"query": {"bool": {"must": []}}}
+
         if genre:
-            body = {
-                'query': {
-                    'query_string': {
-                        'default_field': 'genre',
-                        'query': genre
-                    }
+            body["query"]["bool"]["must"].append({
+                "match": {
+                    "genres": genre
                 }
-            }
+            })
+
         if query:
-            body = {
-                'query': {
-                    'match': {
-                        'title': {
-                            'query': query,
-                            'fuzziness': 1,
-                            'operator': 'and'
-                        }
+            body["query"]["bool"]["must"].append({
+                "match": {
+                    "title": {
+                        "query": query,
+                        "fuzziness": 1,
+                        "operator": "and"
                     }
                 }
-            }
+            })
+
+        # Если нет условий для must, устанавливаем match_all
+        if not body["query"]["bool"]["must"]:
+            body["query"] = {"match_all": {}}
+
         try:
             docs = await self.elastic.search(index='movies',
                                              body=body,
                                              params={
                                                  'size': page_size,
-                                                 'from': page - 1,
+                                                 'from': (page - 1) * page_size,
                                                  'sort': sort,
                                              })
         except NotFoundError:
@@ -126,7 +129,7 @@ class FilmService:
             title=source['title'],
             description=source.get('description'),
             imdb_rating=source.get('imdb_rating', 0.0),
-            genre=[Genre(name=g['name']) for g in source.get('genre', [])],
+            genre=source.get('genres', []),
             actors=[Person(name=p['name']) for p in source.get('actors', [])],
             writers=[Person(name=p['name']) for p in source.get('writers', [])],
             directors=[Person(name=p['name']) for p in source.get('directors', [])]

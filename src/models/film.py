@@ -3,10 +3,10 @@
 from pydantic import BaseModel
 
 
-class Film(BaseModel):
+class FilmPreview(BaseModel):
     id: str
     title: str
-    description: str
+    imdb_raiting: str | None
 
 
 class Actor(BaseModel):
@@ -26,8 +26,17 @@ class Director(BaseModel):
     uuid: str
     name: str
 
+class Genre(BaseModel):
+    id :str
+    name: str
 
-class FullFilm(BaseModel):
+
+class Person(BaseModel):
+    id :str
+    name: str
+
+
+class Film(BaseModel):
     """Класс для описания всех деталий фильма"""
     id: str
     imdb_rating: float | None
@@ -43,3 +52,4 @@ class FullFilm(BaseModel):
     directors: list[PersonEntity]
     actors: list[PersonEntity]
     writers: list[PersonEntity]
+

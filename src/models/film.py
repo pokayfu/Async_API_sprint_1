@@ -6,7 +6,7 @@ from pydantic import BaseModel
 class FilmPreview(BaseModel):
     id: str
     title: str
-    imdb_raiting: str | None
+    imdb_raiting: float | None
 
 
 class Actor(BaseModel):

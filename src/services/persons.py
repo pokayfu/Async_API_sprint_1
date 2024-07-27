@@ -6,6 +6,8 @@ from typing import Optional
 from elasticsearch import AsyncElasticsearch, NotFoundError
 from redis.asyncio import Redis
 from src.models.persons import Person
+from src.models.film import FilmPreview
+from src.services.film import FilmService
 
 PERSON_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
@@ -14,6 +16,31 @@ class PersonService:
     def __init__(self, redis: Redis, elastic: AsyncElasticsearch):
         self.redis = redis
         self.elastic = elastic
+
+    async def get_films_by_person(self, person_id: str) -> Optional[list[FilmPreview]]:
+        #films = await self._films_by_person_from_cache(person_id)
+        films = None
+        if not films:
+            films = await self._get_films_by_person_from_elastic(person_id)
+            if not films:
+                return None
+            #await self._put_films_by_person_to_cache(person)
+        return films
+    
+    async def _get_films_by_person_from_elastic(self, person_id: str):
+        films_by_person = []
+        app_film_service = FilmService(self.redis, self.elastic)
+        person_data = await self._get_person_from_elastic(person_id)
+        if not person_data:
+            return None
+        films_id = [film['id'] for film in person_data.model_dump()['films']]
+        if not films_id:
+            return None
+        for id in films_id:
+            film = await app_film_service.get_by_id(id)
+            films_by_person.append(FilmPreview(**film.model_dump()))
+        return films_by_person
+            
 
     async def get_by_id(self, person_id: str) -> Optional[Person]:
         #person = await self._person_from_cache(person_id)

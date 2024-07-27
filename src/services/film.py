@@ -8,7 +8,7 @@ from src.db.redis import get_redis
 from typing import Optional
 from elasticsearch import AsyncElasticsearch, NotFoundError
 from redis.asyncio import Redis
-from src.models.film import Film, Genre, Person
+from src.models.film import Film, FilmPreview
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
@@ -29,14 +29,14 @@ class FilmService:
 
         return film
 
-    async def all(self, **kwargs) -> list[Film]:
+    async def all(self, **kwargs) -> list[FilmPreview]:
         # films = await self._films_from_cache(**kwargs)
         films = None
         if not films:
             films = await self._get_films_from_elastic(**kwargs)
             if not films:
                 return []
-            await self._put_films_to_cache(films, **kwargs)
+            #await self._put_films_to_cache(films, **kwargs)
         return films
 
     async def _get_film_from_elastic(self, film_id: str) -> Film | None:
@@ -108,14 +108,14 @@ class FilmService:
     async def _put_film_to_cache(self, film: Film):
         await self.redis.set(film.id, film.json(), FILM_CACHE_EXPIRE_IN_SECONDS)
 
-    async def _put_films_to_cache(self, films: list[Film], **kwargs):
+    async def _put_films_to_cache(self, films: list[FilmPreview], **kwargs):
         key = await self.get_key_by_args(**kwargs)
         await self.redis.set(key, orjson.dumps([film.json() for film in films]), FILM_CACHE_EXPIRE_IN_SECONDS)
 
     @staticmethod
     async def _make_film_from_es_doc(doc: dict) -> Film:
         source = doc['_source']
-        return Film(**source)
+        return FilmPreview(**source)
 
     async def get_key_by_args(self, *args, **kwargs) -> str:
         return f'{args}:{json.dumps({'kwargs': kwargs}, sort_keys=True)}'

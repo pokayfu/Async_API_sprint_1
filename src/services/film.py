@@ -19,8 +19,7 @@ class FilmService:
         self.elastic = elastic
 
     async def get_by_id(self, film_id: str) -> Optional[Film]:
-        # film = self._film_from_cache(film_id)
-        film = None
+        film = await self._film_from_cache(film_id)
         if not film:
             film = await self._get_film_from_elastic(film_id)
             if not film:
@@ -30,13 +29,12 @@ class FilmService:
         return film
 
     async def all(self, **kwargs) -> list[FilmPreview]:
-        # films = await self._films_from_cache(**kwargs)
-        films = None
+        films = await self._films_from_cache(**kwargs)
         if not films:
             films = await self._get_films_from_elastic(**kwargs)
             if not films:
                 return []
-            #await self._put_films_to_cache(films, **kwargs)
+            await self._put_films_to_cache(films, **kwargs)
         return films
 
     async def _get_film_from_elastic(self, film_id: str) -> Film | None:
@@ -88,7 +86,7 @@ class FilmService:
         except NotFoundError:
             return None
 
-        return [await FilmService._make_film_from_es_doc(doc) for doc in docs['hits']['hits']]
+        return [FilmPreview(**doc['_source']) for doc in docs['hits']['hits']]
 
     async def _film_from_cache(self, film_id: str) -> Optional[Film]:
         data = await self.redis.get(film_id)
@@ -103,7 +101,7 @@ class FilmService:
         if not data:
             return None
 
-        return [Film.parse_raw(item) for item in orjson.loads(data)]
+        return [FilmPreview.parse_raw(item) for item in orjson.loads(data)]
 
     async def _put_film_to_cache(self, film: Film):
         await self.redis.set(film.id, film.json(), FILM_CACHE_EXPIRE_IN_SECONDS)
@@ -112,10 +110,6 @@ class FilmService:
         key = await self.get_key_by_args(**kwargs)
         await self.redis.set(key, orjson.dumps([film.json() for film in films]), FILM_CACHE_EXPIRE_IN_SECONDS)
 
-    @staticmethod
-    async def _make_film_from_es_doc(doc: dict) -> Film:
-        source = doc['_source']
-        return FilmPreview(**source)
 
     async def get_key_by_args(self, *args, **kwargs) -> str:
         return f'{args}:{json.dumps({'kwargs': kwargs}, sort_keys=True)}'

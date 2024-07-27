@@ -1,0 +1,64 @@
+version: '3'
+
+volumes:
+  pg_data:
+  static:
+  es_data:
+
+services:
+
+#  fastapi:
+#    build: .
+#    # command: bash -c "alembic upgrade head && uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload"
+#    env_file:
+#      - .env
+#    ports:
+#      - "8080"
+#    depends_on:
+#      - es
+#      - cache
+
+  db:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data/
+      - ./postgres_to_es/backup.sql:/docker-entrypoint-initdb.d/init.sql
+    env_file:
+      - .env
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  es:
+    image: elasticsearch:8.14.1
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: [ "CMD-SHELL", "curl http://localhost:9200/" ]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  cache:
+    image: redis:7.2
+    ports:
+      - "6379:6379"
+
+  etl:
+    build: ./postgres_to_es
+    env_file:
+      - .env
+    depends_on:
+      es:
+        condition: service_healthy
+      db:
+        condition: service_healthy

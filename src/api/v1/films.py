@@ -17,7 +17,7 @@ async def film_details(film_id: str, film_service: FilmService = Depends(get_fil
     return Film(**film.model_dump(by_alias=True))
 
 
-@router.get('/', response_model=list[FilmPreview])
+@router.get('', response_model=list[FilmPreview])
 async def get_films(
         page_size: int = 10,
         page: int = 1,
@@ -29,7 +29,7 @@ async def get_films(
     return films
 
 
-@router.get('search', response_model=list[FilmPreview])
+@router.get('/search/', response_model=list[FilmPreview])
 async def search_films_by_title(
         page_size: int = 10,
         page: int = 1,

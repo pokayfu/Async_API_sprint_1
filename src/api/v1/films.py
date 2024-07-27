@@ -2,7 +2,7 @@ from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from src.models.film import Film
+from src.models.film import Film, FilmPreview
 from src.services.film import FilmService, get_film_service
 
 router = APIRouter()
@@ -17,7 +17,7 @@ async def film_details(film_id: str, film_service: FilmService = Depends(get_fil
     return Film(**film.model_dump(by_alias=True))
 
 
-@router.get('/', response_model=list[Film])
+@router.get('/', response_model=list[FilmPreview])
 async def get_films(
         page_size: int = 10,
         page: int = 1,
@@ -29,13 +29,13 @@ async def get_films(
     return films
 
 
-@router.get('search', response_model=list[Film])
+@router.get('/search/', response_model=list[FilmPreview])
 async def search_films_by_title(
         page_size: int = 10,
         page: int = 1,
         sort: str = 'imdb_rating',
         query: str = None,
         film_service: FilmService = Depends(get_film_service)
-) -> list[Film]:
+) -> list[FilmPreview]:
     films = await film_service.all(page_size=page_size, page=page, sort=sort, query=query)
     return films

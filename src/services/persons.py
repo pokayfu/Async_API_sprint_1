@@ -96,7 +96,7 @@ class PersonService:
         return person
 
     async def _put_person_to_cache(self, person: Person):
-        await self.redis.set(person.id, person.json(), PERSON_CACHE_EXPIRE_IN_SECONDS)
+        await self.redis.set(person.person_id, person.json(), PERSON_CACHE_EXPIRE_IN_SECONDS)
 
     async def all(self, **kwargs) -> list[Person]:
         #persons = await self._persons_from_cache(**kwargs)

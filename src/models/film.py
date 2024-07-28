@@ -26,12 +26,8 @@ class Director(BaseModel):
     uuid: str
     name: str
 
+
 class Genre(BaseModel):
-    id :str
-    name: str
-
-
-class Person(BaseModel):
     id :str
     name: str
 

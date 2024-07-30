@@ -96,7 +96,7 @@ class FilmService:
         return film
 
     async def _films_from_cache(self, **kwargs) -> list[Film] | None:
-        key = await self.get_key_by_args(**kwargs)
+        key = await get_key_by_args(**kwargs)
         data = await self.redis.get(key)
         if not data:
             return None

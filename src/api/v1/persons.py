@@ -27,7 +27,7 @@ async def person_details(person_id: UUID, person_service: PersonService = Depend
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='person not found')
     return person.model_dump()
 
-@router.get('/{id}/film', response_model=list[FilmsByPerson])
+@router.get('/{person_id}/film', response_model=list[FilmsByPerson])
 async def films_by_person(person_id: UUID, person_service: PersonService = Depends(get_person_service)):
     films = await person_service.get_films_by_person(person_id)
     if not films:

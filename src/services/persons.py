@@ -119,11 +119,11 @@ class PersonService:
         return [Person.parse_raw(item) for item in orjson.loads(data)]
 
     async def _put_films_by_person_to_cache(self, person_id: str, films: list[FilmPreview], **kwargs):
-        key = await get_key_by_args(person_id, films, **kwargs)
+        key = f'_{person_id}'
         await self.redis.set(key, orjson.dumps([film.json() for film in films]), PERSON_CACHE_EXPIRE_IN_SECONDS)
 
     async def _films_by_person_from_cache(self, *args, **kwargs) -> Optional[list[FilmPreview]]:
-        key = await get_key_by_args(*args, **kwargs)
+        key = f'_{args[0]}'
         data = await self.redis.get(key)
         if not data:
             return None

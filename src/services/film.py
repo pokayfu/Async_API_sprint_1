@@ -1,4 +1,3 @@
-import json
 from functools import lru_cache
 from fastapi import Depends
 from orjson import orjson
@@ -9,6 +8,7 @@ from typing import Optional
 from elasticsearch import AsyncElasticsearch, NotFoundError
 from redis.asyncio import Redis
 from src.models.film import Film, FilmPreview
+from src.services.utils import get_key_by_args
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
@@ -107,12 +107,9 @@ class FilmService:
         await self.redis.set(film.id, film.json(), FILM_CACHE_EXPIRE_IN_SECONDS)
 
     async def _put_films_to_cache(self, films: list[FilmPreview], **kwargs):
-        key = await self.get_key_by_args(**kwargs)
+        key = await get_key_by_args(**kwargs)
         await self.redis.set(key, orjson.dumps([film.json() for film in films]), FILM_CACHE_EXPIRE_IN_SECONDS)
 
-
-    async def get_key_by_args(self, *args, **kwargs) -> str:
-        return f'{args}:{json.dumps({'kwargs': kwargs}, sort_keys=True)}'
 
 @lru_cache()
 def get_film_service(

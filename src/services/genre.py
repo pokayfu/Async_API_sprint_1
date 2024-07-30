@@ -1,4 +1,6 @@
 from functools import lru_cache
+
+import orjson
 from fastapi import Depends
 from src.db.elastic import get_elastic
 from src.db.redis import get_redis
@@ -6,6 +8,7 @@ from typing import Optional
 from elasticsearch import AsyncElasticsearch, NotFoundError
 from redis.asyncio import Redis
 from src.models.genre import Genre
+from src.services.utils import get_key_by_args
 
 GENRE_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
@@ -59,14 +62,24 @@ class GenreService:
         await self.redis.set(genre.id, genre.json(), GENRE_CACHE_EXPIRE_IN_SECONDS)
 
     async def all(self, **kwargs) -> list[Genre]:
-        #genres = await self._genres_from_cache(**kwargs)
-        genres = None
+        genres = await self._genres_from_cache(**kwargs)
         if not genres:
             genres = await self._get_genres_from_elastic(**kwargs)
             if not genres:
                 return []
-            #await self._put_genre_to_cache(genres, **kwargs)
+            await self._put_genres_to_cache(genres, **kwargs)
         return genres
+
+    async def _genres_from_cache(self, **kwargs) -> Optional[list[Genre]]:
+        key = await get_key_by_args(**kwargs)
+        data = await self.redis.get(key)
+        if not data:
+            return None
+        return [Genre.parse_raw(item) for item in orjson.loads(data)]
+
+    async def _put_genres_to_cache(self, genres: list[Genre], **kwargs):
+        key = await get_key_by_args(**kwargs)
+        await self.redis.set(key, orjson.dumps([genre.json() for genre in genres]), GENRE_CACHE_EXPIRE_IN_SECONDS)
 
 @lru_cache()
 def get_genre_service(

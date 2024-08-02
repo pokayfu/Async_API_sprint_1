@@ -49,7 +49,7 @@ class GenreService:
         except NotFoundError:
             return None
 
-        return [Genre(**doc['_source']).model_dump() for doc in docs['hits']['hits']]
+        return [Genre(**doc['_source']) for doc in docs['hits']['hits']]
 
     async def _genre_from_cache(self, genre_id: str) -> Optional[Genre]:
         data = await self.redis.get(genre_id)

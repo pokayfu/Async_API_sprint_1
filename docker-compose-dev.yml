@@ -7,16 +7,16 @@ volumes:
 
 services:
 
-#  fastapi:
-#    build: .
-#    # command: bash -c "alembic upgrade head && uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload"
-#    env_file:
-#      - .env
-#    ports:
-#      - "8080"
-#    depends_on:
-#      - es
-#      - cache
+  fastapi:
+    build: .
+    command: bash -c "uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload"
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - es
+      - cache
 
   db:
     image: postgres:16

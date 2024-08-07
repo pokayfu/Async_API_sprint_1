@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 import backoff
 import psycopg2
@@ -43,7 +43,7 @@ class PsExtractor:
         """
         return psycopg2.connect(**self.db_settings.dict(), connect_timeout=5)
 
-    def extract(self, modified: Optional[str] = None) -> Dict[str, List[Dict]]:
+    def extract(self, modified: str | None) -> Dict[str, List[Dict]]:
         """
         Извлекает данные из базы данных Postgres, учитывая дату последнего обновления.
 

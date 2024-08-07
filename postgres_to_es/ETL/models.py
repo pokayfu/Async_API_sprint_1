@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import Dict, List
 
 from pydantic import BaseModel, Field
 
@@ -20,11 +20,11 @@ ROLES: Dict[str, str] = {
 class MovieModel(BaseModel):
     """Model representing a movie."""
     id: str
-    imdb_rating: Optional[float] = Field(alias='rating')
+    imdb_rating: float | Field(alias='rating')
     genres: List[str]
     title: str
-    persons: Optional[List[PersonModel]] = Field(exclude=True)
-    description: Optional[str] = None
+    persons: List[PersonModel] | None = Field(exclude=True)
+    description: str | None
 
     def _get_persons_by_role(self, role: str) -> List[PersonModel]:
         """Filter persons by role."""
@@ -55,7 +55,7 @@ class MovieModel(BaseModel):
 class GenreModel(BaseModel):
     """Model for Genre"""
     id: str
-    description: Optional[str] = None
+    description: str | None
     name: str
 
 
@@ -67,5 +67,5 @@ class PersonModel(BaseModel):
         id: str
         roles: List[str]
         title: str
-        imdb_rating: Optional[Union[int, float]]
+        imdb_rating: int | float | None
     films: list[FilmEntity]

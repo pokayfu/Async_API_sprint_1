@@ -52,14 +52,16 @@ class GenreService:
         return [Genre(**doc['_source']) for doc in docs['hits']['hits']]
 
     async def _genre_from_cache(self, genre_id: str) -> Optional[Genre]:
-        data = await self.redis.get(genre_id)
+        key = f'genre: {genre_id}'
+        data = await self.redis.get(key)
         if not data:
             return None
         genre = Genre.parse_raw(data)
         return genre
 
     async def _put_genre_to_cache(self, genre: Genre):
-        await self.redis.set(genre.id, genre.json(), GENRE_CACHE_EXPIRE_IN_SECONDS)
+        key = f'genre: {genre.id}'
+        await self.redis.set(key, genre.json(), GENRE_CACHE_EXPIRE_IN_SECONDS)
 
     async def all(self, **kwargs) -> list[Genre]:
         genres = await self._genres_from_cache(**kwargs)
@@ -71,14 +73,14 @@ class GenreService:
         return genres
 
     async def _genres_from_cache(self, **kwargs) -> Optional[list[Genre]]:
-        key = await get_key_by_args(**kwargs)
+        key = f'genres: {await get_key_by_args(**kwargs)}'
         data = await self.redis.get(key)
         if not data:
             return None
         return [Genre.parse_raw(item) for item in orjson.loads(data)]
 
     async def _put_genres_to_cache(self, genres: list[Genre], **kwargs):
-        key = await get_key_by_args(**kwargs)
+        key = f'genres: {await get_key_by_args(**kwargs)}'
         await self.redis.set(key, orjson.dumps([genre.json() for genre in genres]), GENRE_CACHE_EXPIRE_IN_SECONDS)
 
 @lru_cache()

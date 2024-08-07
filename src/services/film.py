@@ -4,7 +4,6 @@ from orjson import orjson
 
 from src.db.elastic import get_elastic
 from src.db.redis import get_redis
-from typing import Optional
 from elasticsearch import AsyncElasticsearch, NotFoundError
 from redis.asyncio import Redis
 from src.models.film import Film, FilmPreview
@@ -18,7 +17,7 @@ class FilmService:
         self.redis = redis
         self.elastic = elastic
 
-    async def get_by_id(self, film_id: str) -> Optional[Film]:
+    async def get_by_id(self, film_id: str) -> Film | None:
         film = await self._film_from_cache(film_id)
         if not film:
             film = await self._get_film_from_elastic(film_id)
@@ -45,7 +44,7 @@ class FilmService:
         source = doc['_source']
         return Film(**source)
 
-    async def _get_films_from_elastic(self, **kwargs) -> list[Film] | None:
+    async def _get_films_from_elastic(self, **kwargs) -> list[FilmPreview] | None:
         page_size = kwargs.get('page_size', 10)
         page = kwargs.get('page', 1)
         sort = kwargs.get('sort', '')
@@ -88,15 +87,16 @@ class FilmService:
 
         return [FilmPreview(**doc['_source']) for doc in docs['hits']['hits']]
 
-    async def _film_from_cache(self, film_id: str) -> Optional[Film]:
-        data = await self.redis.get(film_id)
+    async def _film_from_cache(self, film_id: str) -> Film | None:
+        key = f'film: {film_id}'
+        data = await self.redis.get(key)
         if not data:
             return None
         film = Film.parse_raw(data)
         return film
 
-    async def _films_from_cache(self, **kwargs) -> list[Film] | None:
-        key = await get_key_by_args(**kwargs)
+    async def _films_from_cache(self, **kwargs) -> list[FilmPreview] | None:
+        key = f'films: {await get_key_by_args(**kwargs)}'
         data = await self.redis.get(key)
         if not data:
             return None
@@ -104,10 +104,11 @@ class FilmService:
         return [FilmPreview.parse_raw(item) for item in orjson.loads(data)]
 
     async def _put_film_to_cache(self, film: Film):
-        await self.redis.set(film.id, film.json(), FILM_CACHE_EXPIRE_IN_SECONDS)
+        key = f'film: {film.id}'
+        await self.redis.set(key, film.json(), FILM_CACHE_EXPIRE_IN_SECONDS)
 
     async def _put_films_to_cache(self, films: list[FilmPreview], **kwargs):
-        key = await get_key_by_args(**kwargs)
+        key = f'films: {await get_key_by_args(**kwargs)}'
         await self.redis.set(key, orjson.dumps([film.json() for film in films]), FILM_CACHE_EXPIRE_IN_SECONDS)
 
 

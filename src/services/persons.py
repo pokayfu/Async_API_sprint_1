@@ -98,32 +98,34 @@ class PersonService:
         return [Person(**doc['_source']) for doc in docs['hits']['hits']]
 
     async def _put_person_to_cache(self, person: Person):
-        await self.redis.set(person.person_id, person.json(), PERSON_CACHE_EXPIRE_IN_SECONDS)
+        key = f'person: {person.person_id}'
+        await self.redis.set(key, person.json(), PERSON_CACHE_EXPIRE_IN_SECONDS)
 
     async def _put_persons_to_cache(self, persons: list[Person], **kwargs):
-        key = await get_key_by_args(**kwargs)
+        key = f'persons: {await get_key_by_args(**kwargs)}'
         await self.redis.set(key, orjson.dumps([person.json() for person in persons]), PERSON_CACHE_EXPIRE_IN_SECONDS)
 
     async def _person_from_cache(self, person_id: str) -> Optional[Person]:
-        data = await self.redis.get(person_id)
+        key = f'person: {person_id}'
+        data = await self.redis.get(key)
         if not data:
             return None
         person = Person.parse_raw(data)
         return person
 
     async def _persons_from_cache(self, **kwargs) -> Optional[list[Person]]:
-        key = await get_key_by_args(**kwargs)
+        key = f'persons: {await get_key_by_args(**kwargs)}'
         data = await self.redis.get(key)
         if not data:
             return None
         return [Person.parse_raw(item) for item in orjson.loads(data)]
 
     async def _put_films_by_person_to_cache(self, person_id: str, films: list[FilmPreview], **kwargs):
-        key = f'_{person_id}'
+        key = f'films_by_person: {person_id}'
         await self.redis.set(key, orjson.dumps([film.json() for film in films]), PERSON_CACHE_EXPIRE_IN_SECONDS)
 
     async def _films_by_person_from_cache(self, *args, **kwargs) -> Optional[list[FilmPreview]]:
-        key = f'_{args[0]}'
+        key = f'films_by_person: {args[0]}'
         data = await self.redis.get(key)
         if not data:
             return None

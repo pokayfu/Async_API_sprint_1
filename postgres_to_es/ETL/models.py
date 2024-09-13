@@ -20,7 +20,7 @@ ROLES: Dict[str, str] = {
 class MovieModel(BaseModel):
     """Model representing a movie."""
     id: str
-    imdb_rating: float | Field(alias='rating')
+    imdb_rating: float | None = Field(alias='rating')
     genres: List[str]
     title: str
     persons: List[PersonModel] | None = Field(exclude=True)

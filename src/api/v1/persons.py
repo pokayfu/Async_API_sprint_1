@@ -1,24 +1,24 @@
 
 from http import HTTPStatus
-
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from uuid import UUID
 from src.models.persons import Person, FilmsByPerson
 from src.services.persons import PersonService, get_person_service
+from fastapi import APIRouter, Depends, HTTPException, Query
+
 
 router = APIRouter()
 
 @router.get('/search', response_model=list[Person])
 async def get_persons(
-        page_size: int = 10,
-        page: int = 1,
-        query: str = "",
+        page_size: Annotated[int, Query(description='Pagination page size', ge=1)] = 10,
+        page: Annotated[int, Query(description='Pagination page number', ge=1)] = 1,
+        query: Annotated[str, Query(description='Search by person name')] = '',
         person_service: PersonService = Depends(get_person_service)
 ) -> list[Person]:
     persons = await person_service.all(page_size=page_size, page=page, query=query)
     return persons
-
-
 
 @router.get('/{person_id}', response_model=Person)
 async def person_details(person_id: str, person_service: PersonService = Depends(get_person_service)) -> Person:

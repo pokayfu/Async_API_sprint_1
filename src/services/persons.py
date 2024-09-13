@@ -4,7 +4,6 @@ import orjson
 from fastapi import Depends
 from src.db.elastic import get_elastic
 from src.db.redis import get_redis
-from typing import Optional
 from elasticsearch import AsyncElasticsearch, NotFoundError
 from redis.asyncio import Redis
 from src.models.persons import Person
@@ -20,7 +19,7 @@ class PersonService:
         self.redis = redis
         self.elastic = elastic
 
-    async def get_films_by_person(self, person_id: str) -> Optional[list[FilmPreview]]:
+    async def get_films_by_person(self, person_id: str) -> list[FilmPreview] | None:
         films = await self._films_by_person_from_cache(person_id)
         if not films:
             films = await self._get_films_by_person_from_elastic(person_id)
@@ -43,7 +42,7 @@ class PersonService:
             films_by_person.append(FilmPreview(**film.model_dump()))
         return films_by_person
 
-    async def get_by_id(self, person_id: str) -> Optional[Person]:
+    async def get_by_id(self, person_id: str) -> Person | None:
         person = await self._person_from_cache(person_id)
         if not person:
             person = await self._get_person_from_elastic(person_id)
@@ -61,7 +60,7 @@ class PersonService:
             await self._put_persons_to_cache(persons, **kwargs)
         return persons
 
-    async def _get_person_from_elastic(self, person_id) -> Optional[Person]:
+    async def _get_person_from_elastic(self, person_id) -> Person | None:
         try:
             doc = await self.elastic.get(index='persons', id=person_id)
         except NotFoundError:
@@ -105,7 +104,7 @@ class PersonService:
         key = f'persons: {await get_key_by_args(**kwargs)}'
         await self.redis.set(key, orjson.dumps([person.json() for person in persons]), PERSON_CACHE_EXPIRE_IN_SECONDS)
 
-    async def _person_from_cache(self, person_id: str) -> Optional[Person]:
+    async def _person_from_cache(self, person_id: str) -> Person | None:
         key = f'person: {person_id}'
         data = await self.redis.get(key)
         if not data:
@@ -113,7 +112,7 @@ class PersonService:
         person = Person.parse_raw(data)
         return person
 
-    async def _persons_from_cache(self, **kwargs) -> Optional[list[Person]]:
+    async def _persons_from_cache(self, **kwargs) -> list[Person] | None:
         key = f'persons: {await get_key_by_args(**kwargs)}'
         data = await self.redis.get(key)
         if not data:
@@ -124,7 +123,7 @@ class PersonService:
         key = f'films_by_person: {person_id}'
         await self.redis.set(key, orjson.dumps([film.json() for film in films]), PERSON_CACHE_EXPIRE_IN_SECONDS)
 
-    async def _films_by_person_from_cache(self, *args, **kwargs) -> Optional[list[FilmPreview]]:
+    async def _films_by_person_from_cache(self, *args, **kwargs) -> list[FilmPreview] | None:
         key = f'films_by_person: {args[0]}'
         data = await self.redis.get(key)
         if not data:

@@ -24,6 +24,7 @@ mdurl==0.1.2
 multidict==6.0.5
 orjson==3.10.6
 pydantic==2.8.2
+pydantic-settings==2.4.0
 pydantic_core==2.20.1
 Pygments==2.18.0
 python-dotenv==1.0.1
